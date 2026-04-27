@@ -1,0 +1,1482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuickTicket – Ticket Booking Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+  /* ─── Reset & Root ─────────────────────────────────────── */
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --navy: #070C1B;
+    --navy-mid: #0E1629;
+    --navy-card: #131D35;
+    --navy-border: #1E2D4F;
+    --orange: #FF5F2E;
+    --orange-light: #FF7A4D;
+    --orange-glow: rgba(255,95,46,0.25);
+    --cyan: #00D4FF;
+    --cyan-dim: rgba(0,212,255,0.12);
+    --gold: #FFD166;
+    --green: #06D6A0;
+    --red: #EF476F;
+    --text-primary: #F0F4FF;
+    --text-secondary: #8A9BC0;
+    --text-muted: #4A5A80;
+    --glass: rgba(19,29,53,0.85);
+    --glass-border: rgba(255,255,255,0.07);
+    --radius: 16px;
+    --radius-sm: 10px;
+    --shadow-card: 0 8px 32px rgba(0,0,0,0.4);
+    --shadow-glow: 0 0 40px rgba(255,95,46,0.2);
+    --transition: 0.35s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--navy);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+    cursor: default;
+  }
+
+  h1, h2, h3, h4, h5 { font-family: 'Syne', sans-serif; }
+
+  /* ─── Page System ───────────────────────────────────────── */
+  .page {
+    display: none;
+    min-height: 100vh;
+    animation: pageFadeIn 0.5s ease forwards;
+  }
+  .page.active { display: block; }
+
+  @keyframes pageFadeIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ─── Background Grain & Mesh ──────────────────────────── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 15% 20%, rgba(255,95,46,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 85% 80%, rgba(0,212,255,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 50% at 50% 50%, rgba(14,22,41,0.9) 0%, var(--navy) 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 0; opacity: 0.6;
+  }
+
+  .page > * { position: relative; z-index: 1; }
+
+  /* ─── Buttons ───────────────────────────────────────────── */
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 14px 28px;
+    border: none; border-radius: 50px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 600; font-size: 15px;
+    cursor: pointer; text-decoration: none;
+    transition: var(--transition);
+    position: relative; overflow: hidden;
+  }
+  .btn::before {
+    content: ''; position: absolute; inset: 0;
+    background: rgba(255,255,255,0.12);
+    opacity: 0; transition: opacity 0.2s;
+  }
+  .btn:hover::before { opacity: 1; }
+  .btn:active { transform: scale(0.97); }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--orange) 0%, #FF3D6B 100%);
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(255,95,46,0.4);
+  }
+  .btn-primary:hover { box-shadow: 0 6px 28px rgba(255,95,46,0.6); transform: translateY(-2px); }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--text-primary);
+    border: 1.5px solid var(--navy-border);
+  }
+  .btn-outline:hover { border-color: var(--orange); color: var(--orange); }
+
+  .btn-ghost {
+    background: rgba(255,255,255,0.05);
+    color: var(--text-secondary);
+    border: 1px solid var(--glass-border);
+  }
+  .btn-ghost:hover { background: rgba(255,255,255,0.1); color: var(--text-primary); }
+
+  .btn-sm { padding: 9px 18px; font-size: 13px; }
+  .btn-full { width: 100%; justify-content: center; }
+
+  /* ─── Inputs ────────────────────────────────────────────── */
+  .input-group {
+    display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px;
+  }
+  .input-group label {
+    font-size: 12px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--text-secondary);
+  }
+  .input-group input, .input-group select {
+    background: var(--navy-card);
+    border: 1.5px solid var(--navy-border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    padding: 13px 16px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    -webkit-appearance: none;
+  }
+  .input-group select { cursor: pointer; }
+  .input-group input::placeholder { color: var(--text-muted); }
+  .input-group input:focus, .input-group select:focus {
+    border-color: var(--orange);
+    box-shadow: 0 0 0 3px var(--orange-glow);
+  }
+
+  /* ─── Cards ─────────────────────────────────────────────── */
+  .card {
+    background: var(--navy-card);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    padding: 24px;
+    backdrop-filter: blur(10px);
+  }
+
+  /* ─── Navbar ────────────────────────────────────────────── */
+  .navbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 28px;
+    background: rgba(7,12,27,0.85);
+    border-bottom: 1px solid var(--navy-border);
+    backdrop-filter: blur(20px);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .navbar-brand {
+    display: flex; align-items: center; gap: 10px;
+    font-family: 'Syne', sans-serif; font-weight: 800;
+    font-size: 20px; color: var(--text-primary);
+    text-decoration: none;
+  }
+  .navbar-brand span { color: var(--orange); }
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--orange), #FF3D6B);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .navbar-nav { display: flex; align-items: center; gap: 8px; }
+  .nav-link {
+    padding: 8px 14px; border-radius: 8px;
+    font-size: 14px; font-weight: 500;
+    color: var(--text-secondary); text-decoration: none;
+    cursor: pointer; transition: var(--transition);
+    border: none; background: transparent;
+  }
+  .nav-link:hover { color: var(--text-primary); background: rgba(255,255,255,0.05); }
+  .nav-link.active { color: var(--orange); }
+
+  /* ─── PAGE 1: WELCOME ───────────────────────────────────── */
+  #welcome-page {
+    display: none;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  #welcome-page.active { display: flex; }
+
+  .welcome-hero {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 60px 24px 40px;
+    text-align: center;
+    gap: 12px;
+  }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(255,95,46,0.12);
+    border: 1px solid rgba(255,95,46,0.3);
+    border-radius: 50px;
+    padding: 6px 14px;
+    font-size: 12px; font-weight: 600; color: var(--orange);
+    letter-spacing: 0.06em; text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .welcome-title {
+    font-size: clamp(36px, 7vw, 72px);
+    font-weight: 800; line-height: 1.1;
+    letter-spacing: -0.03em;
+  }
+  .welcome-title .accent { color: var(--orange); }
+  .welcome-title .line2 {
+    display: block;
+    background: linear-gradient(90deg, var(--cyan), var(--text-primary));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .welcome-sub {
+    max-width: 520px; font-size: 17px; line-height: 1.6;
+    color: var(--text-secondary); font-weight: 300; margin-top: 8px;
+  }
+
+  /* Slideshow */
+  .slideshow-section {
+    width: 100%; max-width: 900px; margin: 32px auto;
+    padding: 0 24px;
+  }
+  .slideshow-label {
+    font-size: 12px; font-weight: 600; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--text-muted);
+    margin-bottom: 12px; text-align: center;
+  }
+  .slideshow-wrapper {
+    position: relative;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow-card);
+  }
+  .slide {
+    display: none;
+    padding: 32px 40px;
+    min-height: 160px;
+    align-items: center; gap: 32px;
+    position: relative; overflow: hidden;
+    animation: slideIn 0.6s ease;
+  }
+  .slide.active { display: flex; }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(40px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  .slide-bus    { background: linear-gradient(135deg, #1A2744 0%, #0E1A35 100%); }
+  .slide-movie  { background: linear-gradient(135deg, #251530 0%, #140B20 100%); }
+  .slide-train  { background: linear-gradient(135deg, #0F251C 0%, #081812 100%); }
+  .slide-air    { background: linear-gradient(135deg, #141E3A 0%, #0A1226 100%); }
+
+  .slide-icon {
+    font-size: 56px; flex-shrink: 0;
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5));
+  }
+  .slide-content { flex: 1; }
+  .slide-tag {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; margin-bottom: 8px;
+  }
+  .slide-bus .slide-tag    { color: var(--cyan); }
+  .slide-movie .slide-tag  { color: #C77DFF; }
+  .slide-train .slide-tag  { color: var(--green); }
+  .slide-air .slide-tag    { color: var(--text-muted); }
+
+  .slide-headline {
+    font-size: 26px; font-weight: 800;
+    line-height: 1.2; margin-bottom: 6px;
+  }
+  .slide-desc { font-size: 14px; color: var(--text-secondary); }
+
+  .slide-offer {
+    font-family: 'Syne', sans-serif;
+    font-size: 42px; font-weight: 800;
+    line-height: 1; flex-shrink: 0; text-align: right;
+  }
+  .slide-bus .slide-offer    { color: var(--cyan); }
+  .slide-movie .slide-offer  { color: #C77DFF; }
+  .slide-train .slide-offer  { color: var(--green); }
+  .slide-air .slide-offer    { color: var(--text-muted); font-size: 22px; }
+
+  .slide-bg-shape {
+    position: absolute; right: -40px; top: -40px;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    opacity: 0.06;
+  }
+  .slide-bus .slide-bg-shape    { background: var(--cyan); }
+  .slide-movie .slide-bg-shape  { background: #C77DFF; }
+  .slide-train .slide-bg-shape  { background: var(--green); }
+  .slide-air .slide-bg-shape    { background: var(--text-secondary); }
+
+  .slide-dots {
+    display: flex; justify-content: center; gap: 8px;
+    padding: 14px;
+    background: rgba(0,0,0,0.2);
+  }
+  .slide-dot {
+    width: 28px; height: 4px; border-radius: 2px;
+    background: var(--navy-border); cursor: pointer;
+    transition: background 0.3s, width 0.3s;
+    border: none;
+  }
+  .slide-dot.active { background: var(--orange); width: 44px; }
+
+  .welcome-cta { margin-top: 8px; }
+  .cta-hint { font-size: 13px; color: var(--text-muted); margin-top: 10px; }
+
+  .stats-row {
+    display: flex; gap: 32px; justify-content: center;
+    padding: 24px; flex-wrap: wrap;
+  }
+  .stat { text-align: center; }
+  .stat-num { font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 800; color: var(--text-primary); }
+  .stat-label { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  .welcome-footer {
+    padding: 20px 24px;
+    text-align: center;
+    font-size: 12px; color: var(--text-muted);
+    border-top: 1px solid var(--navy-border);
+  }
+
+  /* ─── PAGE 2: LOGIN ─────────────────────────────────────── */
+  #login-page {
+    display: none;
+    min-height: 100vh;
+    align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  #login-page.active { display: flex; }
+
+  .login-container {
+    width: 100%; max-width: 440px;
+  }
+  .login-back {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 14px; color: var(--text-secondary);
+    cursor: pointer; margin-bottom: 28px;
+    transition: color 0.2s;
+    background: none; border: none;
+  }
+  .login-back:hover { color: var(--text-primary); }
+
+  .login-card {
+    background: var(--navy-card);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    padding: 40px 36px;
+    box-shadow: var(--shadow-card), 0 0 80px rgba(255,95,46,0.05);
+    position: relative; overflow: hidden;
+  }
+  .login-card::before {
+    content: ''; position: absolute;
+    top: -60px; right: -60px;
+    width: 180px; height: 180px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,95,46,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .login-icon { font-size: 40px; margin-bottom: 12px; }
+  .login-title {
+    font-size: 28px; font-weight: 800;
+    margin-bottom: 4px;
+  }
+  .login-sub { font-size: 14px; color: var(--text-secondary); margin-bottom: 28px; }
+
+  .otp-row { display: flex; gap: 10px; align-items: flex-end; }
+  .otp-row .input-group { flex: 1; margin-bottom: 0; }
+  .otp-btn {
+    white-space: nowrap; flex-shrink: 0;
+    height: 46px; padding: 0 16px;
+    background: rgba(255,95,46,0.15);
+    border: 1.5px solid rgba(255,95,46,0.4);
+    color: var(--orange); border-radius: var(--radius-sm);
+    font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: var(--transition);
+  }
+  .otp-btn:hover { background: rgba(255,95,46,0.25); }
+  .otp-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .otp-hint {
+    background: rgba(0,212,255,0.08);
+    border: 1px solid rgba(0,212,255,0.2);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-size: 13px; color: var(--cyan);
+    margin-bottom: 16px; display: none;
+  }
+  .otp-hint.show { display: block; }
+
+  .error-msg {
+    background: rgba(239,71,111,0.1);
+    border: 1px solid rgba(239,71,111,0.3);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-size: 13px; color: var(--red);
+    margin-bottom: 16px; display: none;
+  }
+  .error-msg.show { display: block; }
+
+  /* ─── PAGE 3: DASHBOARD ─────────────────────────────────── */
+  #dashboard-page { display: none; }
+  #dashboard-page.active { display: block; }
+
+  .dashboard-hero {
+    background: linear-gradient(135deg, var(--navy-mid) 0%, var(--navy-card) 100%);
+    border-bottom: 1px solid var(--navy-border);
+    padding: 40px 28px 32px;
+  }
+  .dashboard-greeting-row {
+    max-width: 1100px; margin: 0 auto;
+    display: flex; align-items: flex-end; justify-content: space-between;
+    flex-wrap: wrap; gap: 20px;
+  }
+  .greeting-time {
+    font-size: 12px; font-weight: 600; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--orange);
+    margin-bottom: 6px;
+  }
+  .greeting-name {
+    font-size: clamp(26px,5vw,42px); font-weight: 800;
+    line-height: 1.1;
+  }
+  .greeting-sub { font-size: 15px; color: var(--text-secondary); margin-top: 4px; }
+
+  .quick-stats {
+    display: flex; gap: 16px; flex-wrap: wrap;
+  }
+  .qstat {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    padding: 12px 20px; text-align: center;
+  }
+  .qstat-num { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; }
+  .qstat-label { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  .dashboard-content { max-width: 1100px; margin: 0 auto; padding: 32px 28px; }
+
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .section-title { font-size: 20px; font-weight: 700; }
+  .section-sub { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+
+  /* Service Cards */
+  .services-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 20px; margin-bottom: 40px;
+  }
+  .service-card {
+    background: var(--navy-card);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    padding: 28px 24px;
+    cursor: pointer; transition: var(--transition);
+    position: relative; overflow: hidden;
+  }
+  .service-card:hover:not(.disabled) {
+    transform: translateY(-6px);
+    border-color: var(--service-color, var(--orange));
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4), 0 0 0 1px var(--service-color, var(--orange));
+  }
+  .service-card.disabled { cursor: not-allowed; opacity: 0.5; }
+
+  .service-card::before {
+    content: ''; position: absolute;
+    inset: 0; border-radius: var(--radius);
+    background: radial-gradient(circle at 80% 20%, var(--service-color, var(--orange)) 0%, transparent 60%);
+    opacity: 0; transition: opacity 0.4s;
+  }
+  .service-card:hover:not(.disabled)::before { opacity: 0.07; }
+
+  .service-card-bg {
+    position: absolute; right: -20px; bottom: -20px;
+    font-size: 88px; opacity: 0.06;
+    pointer-events: none; line-height: 1;
+  }
+  .service-icon {
+    font-size: 36px; margin-bottom: 16px;
+    display: flex; align-items: center; justify-content: center;
+    width: 64px; height: 64px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 16px; border: 1px solid var(--glass-border);
+  }
+  .service-name {
+    font-size: 18px; font-weight: 700; margin-bottom: 6px;
+  }
+  .service-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+  .service-arrow {
+    position: absolute; top: 24px; right: 24px;
+    width: 32px; height: 32px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 14px; color: var(--text-muted); transition: var(--transition);
+  }
+  .service-card:hover:not(.disabled) .service-arrow {
+    background: var(--service-color, var(--orange));
+    color: #fff; transform: translate(2px,-2px);
+  }
+  .coming-soon-tag {
+    display: inline-block; margin-top: 8px;
+    background: rgba(255,255,255,0.08); border-radius: 50px;
+    padding: 3px 10px; font-size: 11px; font-weight: 600;
+    color: var(--text-muted); letter-spacing: 0.06em;
+  }
+
+  /* ─── PAGE: BOOKING BASE ────────────────────────────────── */
+  .booking-page { display: none; }
+  .booking-page.active { display: block; }
+
+  .booking-header {
+    background: var(--navy-mid);
+    border-bottom: 1px solid var(--navy-border);
+    padding: 24px 28px;
+    display: flex; align-items: center; gap: 16px;
+  }
+  .back-btn {
+    width: 40px; height: 40px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: 10px; display: flex;
+    align-items: center; justify-content: center;
+    cursor: pointer; color: var(--text-secondary);
+    font-size: 18px; transition: var(--transition);
+    flex-shrink: 0;
+  }
+  .back-btn:hover { background: rgba(255,255,255,0.1); color: var(--text-primary); }
+
+  .booking-header-title { font-size: 22px; font-weight: 800; }
+  .booking-header-sub { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+
+  .booking-body { max-width: 900px; margin: 0 auto; padding: 32px 24px; }
+
+  .booking-form-card {
+    background: var(--navy-card);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    padding: 32px;
+    margin-bottom: 24px;
+  }
+
+  .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media(max-width: 600px) { .form-grid-2 { grid-template-columns: 1fr; } }
+
+  /* ─── Bus Booking ───────────────────────────────────────── */
+  .price-summary {
+    background: linear-gradient(135deg, rgba(255,95,46,0.1), rgba(255,95,46,0.05));
+    border: 1px solid rgba(255,95,46,0.25);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-top: 24px;
+  }
+  .price-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; }
+  .price-row + .price-row { border-top: 1px solid var(--navy-border); }
+  .price-label { font-size: 14px; color: var(--text-secondary); }
+  .price-val { font-size: 14px; font-weight: 600; }
+  .price-total { font-size: 22px; font-weight: 800; color: var(--orange); }
+
+  /* ─── Movie Booking ─────────────────────────────────────── */
+  .screen-indicator {
+    background: linear-gradient(180deg, rgba(0,212,255,0.3), transparent);
+    border-radius: 50% 50% 0 0 / 30px 30px 0 0;
+    height: 10px; width: 70%; margin: 0 auto 32px;
+    box-shadow: 0 0 20px rgba(0,212,255,0.4);
+  }
+  .screen-label { text-align: center; font-size: 11px; color: var(--text-muted); margin-bottom: 24px; letter-spacing: 0.15em; text-transform: uppercase; }
+
+  .seat-grid {
+    display: flex; flex-direction: column; gap: 8px;
+    align-items: center; margin-bottom: 24px;
+  }
+  .seat-row { display: flex; gap: 6px; align-items: center; }
+  .row-label { width: 24px; text-align: center; font-size: 11px; color: var(--text-muted); font-weight: 600; flex-shrink: 0; }
+  .seat {
+    width: 34px; height: 30px;
+    border-radius: 6px 6px 4px 4px;
+    border: 1.5px solid var(--navy-border);
+    background: var(--navy-mid);
+    cursor: pointer; transition: var(--transition);
+    font-size: 10px; display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted); font-weight: 600;
+    position: relative;
+  }
+  .seat::after {
+    content: ''; position: absolute;
+    bottom: -4px; left: 4px; right: 4px; height: 4px;
+    background: var(--navy-border); border-radius: 0 0 4px 4px;
+  }
+  .seat:hover:not(.booked) { border-color: var(--orange); background: rgba(255,95,46,0.1); color: var(--orange); }
+  .seat.selected { border-color: var(--orange); background: var(--orange); color: #fff; }
+  .seat.selected::after { background: rgba(255,95,46,0.5); }
+  .seat.booked { background: var(--navy-border); cursor: not-allowed; opacity: 0.4; }
+
+  .seat-gap { width: 20px; }
+
+  .seat-legend {
+    display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;
+    margin-bottom: 24px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary); }
+  .legend-box { width: 20px; height: 18px; border-radius: 4px; border: 1.5px solid; }
+  .legend-avail { border-color: var(--navy-border); background: var(--navy-mid); }
+  .legend-sel   { border-color: var(--orange); background: var(--orange); }
+  .legend-book  { border-color: var(--navy-border); background: var(--navy-border); opacity: 0.4; }
+
+  /* ─── Confirmation Modal ────────────────────────────────── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(6px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000; padding: 24px;
+    opacity: 0; pointer-events: none; transition: opacity 0.3s;
+  }
+  .modal-overlay.show { opacity: 1; pointer-events: all; }
+  .modal-box {
+    background: var(--navy-card);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    padding: 40px; max-width: 480px; width: 100%;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+    transform: scale(0.9) translateY(20px); transition: transform 0.3s;
+    text-align: center;
+  }
+  .modal-overlay.show .modal-box { transform: scale(1) translateY(0); }
+  .modal-icon { font-size: 56px; margin-bottom: 16px; }
+  .modal-title { font-size: 26px; font-weight: 800; margin-bottom: 8px; }
+  .modal-sub { font-size: 14px; color: var(--text-secondary); margin-bottom: 24px; line-height: 1.6; }
+  .modal-ticket {
+    background: var(--navy);
+    border: 1px dashed var(--navy-border);
+    border-radius: 12px; padding: 20px;
+    margin-bottom: 24px; text-align: left;
+  }
+  .ticket-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; }
+  .ticket-row-label { color: var(--text-muted); }
+  .ticket-row-val { font-weight: 600; }
+  .ticket-id { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; color: var(--orange); text-align: center; margin-bottom: 12px; }
+
+  /* ─── PAGE: PROFILE ─────────────────────────────────────── */
+  #profile-page { display: none; }
+  #profile-page.active { display: block; }
+
+  .profile-body { max-width: 640px; margin: 0 auto; padding: 32px 24px; }
+  .profile-avatar {
+    width: 96px; height: 96px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--orange), #FF3D6B);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 40px; font-weight: 800; font-family: 'Syne', sans-serif;
+    color: #fff; margin: 0 auto 20px;
+    box-shadow: 0 0 0 4px rgba(255,95,46,0.2), 0 0 0 8px rgba(255,95,46,0.08);
+  }
+  .profile-name { font-size: 28px; font-weight: 800; text-align: center; margin-bottom: 4px; }
+  .profile-phone { font-size: 14px; color: var(--text-secondary); text-align: center; margin-bottom: 32px; }
+
+  .info-list { display: flex; flex-direction: column; gap: 2px; }
+  .info-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 20px;
+    background: var(--navy-card);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+  }
+  .info-item:first-child { border-radius: var(--radius-sm) var(--radius-sm) 4px 4px; }
+  .info-item:last-child  { border-radius: 4px 4px var(--radius-sm) var(--radius-sm); }
+  .info-label { color: var(--text-secondary); }
+  .info-val   { font-weight: 600; }
+
+  /* ─── PAGE: BOOKING HISTORY ─────────────────────────────── */
+  #history-page { display: none; }
+  #history-page.active { display: block; }
+
+  .history-body { max-width: 800px; margin: 0 auto; padding: 32px 24px; }
+
+  .history-card {
+    background: var(--navy-card);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 14px;
+    display: flex; align-items: center; gap: 20px;
+    transition: var(--transition);
+  }
+  .history-card:hover { border-color: rgba(255,255,255,0.12); transform: translateX(4px); }
+
+  .history-icon {
+    width: 52px; height: 52px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; flex-shrink: 0;
+  }
+  .history-info { flex: 1; }
+  .history-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+  .history-meta { font-size: 13px; color: var(--text-secondary); }
+  .history-amount { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; color: var(--orange); }
+
+  .status-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 50px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+  }
+  .status-confirmed { background: rgba(6,214,160,0.12); color: var(--green); }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  .empty-state {
+    text-align: center; padding: 60px 24px;
+  }
+  .empty-icon { font-size: 56px; margin-bottom: 16px; opacity: 0.4; }
+  .empty-title { font-size: 20px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px; }
+  .empty-sub { font-size: 14px; color: var(--text-muted); }
+
+  /* ─── Toast Notification ────────────────────────────────── */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: var(--navy-card);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px; padding: 14px 20px;
+    font-size: 14px; font-weight: 500;
+    box-shadow: var(--shadow-card);
+    z-index: 9999;
+    transform: translateY(80px) scale(0.9);
+    opacity: 0; transition: all 0.4s cubic-bezier(0.4,0,0.2,1);
+    display: flex; align-items: center; gap: 10px;
+    max-width: 340px;
+  }
+  .toast.show { transform: translateY(0) scale(1); opacity: 1; }
+  .toast.success { border-left: 3px solid var(--green); }
+  .toast.error   { border-left: 3px solid var(--red); }
+  .toast.info    { border-left: 3px solid var(--cyan); }
+
+  /* ─── Responsive ─────────────────────────────────────────── */
+  @media (max-width: 768px) {
+    .slide { padding: 24px 20px; gap: 16px; }
+    .slide-offer { font-size: 28px; }
+    .slide-headline { font-size: 20px; }
+    .navbar { padding: 12px 16px; }
+    .navbar-brand { font-size: 17px; }
+    .dashboard-hero { padding: 28px 16px 24px; }
+    .dashboard-content { padding: 24px 16px; }
+    .booking-body { padding: 24px 16px; }
+    .booking-form-card { padding: 20px 16px; }
+    .modal-box { padding: 28px 20px; }
+  }
+  @media (max-width: 480px) {
+    .otp-row { flex-direction: column; }
+    .otp-btn { width: 100%; height: 46px; }
+    .services-grid { grid-template-columns: 1fr 1fr; }
+    .seat { width: 28px; height: 25px; font-size: 9px; }
+  }
+
+  /* ─── Utility ────────────────────────────────────────────── */
+  .divider { height: 1px; background: var(--navy-border); margin: 24px 0; }
+  .text-orange { color: var(--orange); }
+  .text-cyan   { color: var(--cyan); }
+  .text-green  { color: var(--green); }
+  .text-muted  { color: var(--text-muted); }
+  .fw-800 { font-weight: 800; }
+  .mt-8  { margin-top: 8px; }
+  .mt-16 { margin-top: 16px; }
+  .mt-24 { margin-top: 24px; }
+  .mb-8  { margin-bottom: 8px; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div id="welcome-page" class="page active">
+  <nav class="navbar">
+    <a class="navbar-brand" href="#">
+      <div class="logo-icon">🎫</div>
+      Quick<span>Ticket</span>
+    </a>
+    <div class="navbar-nav">
+      <button class="btn btn-primary btn-sm" onclick="showPage('login')">Login / Get Started</button>
+    </div>
+  </nav>
+
+  <section class="welcome-hero">
+    <div class="badge">✦ India's #1 Ticket Hub</div>
+    <h1 class="welcome-title">
+      Book Every Ride,<br>
+      <span class="line2">Every Show, Everywhere.</span>
+    </h1>
+    <p class="welcome-sub">One portal for all your travel and entertainment needs. Bus, Train, Movie — instantly.</p>
+
+    <div class="slideshow-section">
+      <p class="slideshow-label">🎁 Current Offers & Deals</p>
+      <div class="slideshow-wrapper">
+        <div class="slide slide-bus active">
+          <div class="slide-bg-shape"></div>
+          <div class="slide-icon">🚌</div>
+          <div class="slide-content">
+            <div class="slide-tag">Bus Tickets</div>
+            <div class="slide-headline">Ride More, Pay Less!</div>
+            <div class="slide-desc">Flat 10% off on all intercity bus routes — use code BUSGO</div>
+          </div>
+          <div class="slide-offer">10% OFF</div>
+        </div>
+        <div class="slide slide-movie">
+          <div class="slide-bg-shape"></div>
+          <div class="slide-icon">🎬</div>
+          <div class="slide-content">
+            <div class="slide-tag">Movie Tickets</div>
+            <div class="slide-headline">Movie Night Done Right!</div>
+            <div class="slide-desc">Book 2 tickets and get a free large popcorn combo — weekends only</div>
+          </div>
+          <div class="slide-offer">🍿 FREE</div>
+        </div>
+        <div class="slide slide-train">
+          <div class="slide-bg-shape"></div>
+          <div class="slide-icon">🚂</div>
+          <div class="slide-content">
+            <div class="slide-tag">Train Tickets</div>
+            <div class="slide-headline">Weekend Getaway Saver</div>
+            <div class="slide-desc">5% off on all weekend train journeys — no coupon needed</div>
+          </div>
+          <div class="slide-offer">5% OFF</div>
+        </div>
+        <div class="slide slide-air">
+          <div class="slide-bg-shape"></div>
+          <div class="slide-icon">✈️</div>
+          <div class="slide-content">
+            <div class="slide-tag">Airway Booking</div>
+            <div class="slide-headline">Something Big is Launching!</div>
+            <div class="slide-desc">Flight booking will be available soon — stay tuned for exclusive early-bird deals</div>
+          </div>
+          <div class="slide-offer">SOON</div>
+        </div>
+
+        <div class="slide-dots">
+          <button class="slide-dot active" onclick="goToSlide(0)"></button>
+          <button class="slide-dot" onclick="goToSlide(1)"></button>
+          <button class="slide-dot" onclick="goToSlide(2)"></button>
+          <button class="slide-dot" onclick="goToSlide(3)"></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="welcome-cta">
+      <button class="btn btn-primary" onclick="showPage('login')" style="font-size:16px;padding:16px 36px;">
+        🚀 Login / Get Started
+      </button>
+      <p class="cta-hint">Free to use · No credit card required</p>
+    </div>
+  </section>
+
+  <div class="stats-row">
+    <div class="stat"><div class="stat-num text-orange">50K+</div><div class="stat-label">Bookings Made</div></div>
+    <div class="stat"><div class="stat-num text-cyan">200+</div><div class="stat-label">Routes Available</div></div>
+    <div class="stat"><div class="stat-num text-green">4.9★</div><div class="stat-label">User Rating</div></div>
+    <div class="stat"><div class="stat-num">3</div><div class="stat-label">Services Active</div></div>
+  </div>
+
+  <footer class="welcome-footer">
+    © 2025 QuickTicket · All Rights Reserved · Made with ❤️ in India
+  </footer>
+</div>
+
+<div id="login-page" class="page">
+  <div class="login-container">
+    <button class="login-back" onclick="showPage('welcome')">
+      ← Back to Home
+    </button>
+    <div class="login-card">
+      <div class="login-icon">🎫</div>
+      <h2 class="login-title">Welcome Back!</h2>
+      <p class="login-sub">Enter your details to book tickets instantly.</p>
+
+      <div class="input-group">
+        <label>Your Name</label>
+        <input type="text" id="login-name" placeholder="e.g. Arjun Sharma" />
+      </div>
+
+      <div class="input-group">
+        <label>Phone Number</label>
+        <input type="tel" id="login-phone" placeholder="10-digit mobile number" maxlength="10" />
+      </div>
+
+      <div class="input-group" style="margin-bottom:10px;">
+        <label>One-Time Password (OTP)</label>
+        <div class="otp-row">
+          <div class="input-group" style="margin-bottom:0;">
+            <input type="text" id="login-otp" placeholder="Enter 6-digit OTP" maxlength="6" />
+          </div>
+          <button class="otp-btn" id="otp-send-btn" onclick="sendOTP()">Send OTP</button>
+        </div>
+      </div>
+
+      <div class="otp-hint" id="otp-hint"></div>
+      <div class="error-msg" id="login-error"></div>
+
+      <button class="btn btn-primary btn-full" onclick="verifyAndLogin()" style="margin-top:8px;">
+        Verify & Continue →
+      </button>
+
+      <p style="font-size:12px;color:var(--text-muted);text-align:center;margin-top:16px;">
+        By continuing, you agree to our Terms & Privacy Policy
+      </p>
+    </div>
+  </div>
+</div>
+
+<div id="dashboard-page" class="page">
+  <nav class="navbar">
+    <a class="navbar-brand" href="#">
+      <div class="logo-icon">🎫</div>
+      Quick<span>Ticket</span>
+    </a>
+    <div class="navbar-nav">
+      <button class="nav-link" onclick="showPage('profile')">👤 Profile</button>
+      <button class="nav-link" onclick="showPage('history')">📋 History</button>
+      <button class="btn btn-ghost btn-sm" onclick="logout()">Logout</button>
+    </div>
+  </nav>
+
+  <div class="dashboard-hero">
+    <div class="dashboard-greeting-row">
+      <div>
+        <div class="greeting-time" id="greeting-time">Good Morning</div>
+        <h1 class="greeting-name">Hello, <span id="greeting-name" class="text-orange">Traveller</span>! 👋</h1>
+        <p class="greeting-sub">Where would you like to go today?</p>
+      </div>
+      <div class="quick-stats">
+        <div class="qstat">
+          <div class="qstat-num text-orange" id="dash-total-bookings">0</div>
+          <div class="qstat-label">Total Bookings</div>
+        </div>
+        <div class="qstat">
+          <div class="qstat-num text-green">3</div>
+          <div class="qstat-label">Services Live</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dashboard-content">
+    <div class="section-header">
+      <div>
+        <div class="section-title">Our Services</div>
+        <div class="section-sub">Choose a category to start booking</div>
+      </div>
+    </div>
+
+    <div class="services-grid">
+      <div class="service-card" style="--service-color:#00D4FF;" onclick="showPage('bus')">
+        <div class="service-card-bg">🚌</div>
+        <div class="service-arrow">→</div>
+        <div class="service-icon">🚌</div>
+        <div class="service-name">Bus Booking</div>
+        <div class="service-desc">Intercity & local routes. Fast search, easy booking.</div>
+      </div>
+      <div class="service-card" style="--service-color:#C77DFF;" onclick="showPage('movie')">
+        <div class="service-card-bg">🎬</div>
+        <div class="service-arrow">→</div>
+        <div class="service-icon">🎬</div>
+        <div class="service-name">Movie Booking</div>
+        <div class="service-desc">Pick your seats, catch the latest blockbusters.</div>
+      </div>
+      <div class="service-card" style="--service-color:#06D6A0;" onclick="showPage('train')">
+        <div class="service-card-bg">🚂</div>
+        <div class="service-arrow">→</div>
+        <div class="service-icon">🚂</div>
+        <div class="service-name">Train Booking</div>
+        <div class="service-desc">AC, Sleeper, General — book across all classes.</div>
+      </div>
+      <div class="service-card disabled" style="--service-color:#4A5A80;">
+        <div class="service-card-bg">✈️</div>
+        <div class="service-icon">✈️</div>
+        <div class="service-name">Airway Booking</div>
+        <div class="service-desc">Domestic & international flights.</div>
+        <div><span class="coming-soon-tag">🕐 Coming Soon</span></div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section-header">
+      <div>
+        <div class="section-title">Recent Bookings</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="showPage('history')">View All →</button>
+    </div>
+    <div id="dash-recent-bookings">
+      <div class="empty-state" style="padding:32px;">
+        <div class="empty-icon">🎟️</div>
+        <div class="empty-title">No bookings yet</div>
+        <div class="empty-sub">Your booking history will appear here</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="bus-page" class="page booking-page">
+  <div class="booking-header">
+    <button class="back-btn" onclick="showPage('dashboard')">←</button>
+    <div>
+      <div class="booking-header-title">🚌 Bus Booking</div>
+      <div class="booking-header-sub">10% discount with code BUSGO</div>
+    </div>
+  </div>
+  <div class="booking-body">
+    <div class="booking-form-card">
+      <div class="form-grid-2">
+        <div class="input-group">
+          <label>From City</label>
+          <select id="bus-from">
+            <option value="">Select departure</option>
+            <option>Hyderabad</option><option>Bangalore</option><option>Chennai</option>
+            <option>Mumbai</option><option>Delhi</option><option>Pune</option>
+            <option>Kolkata</option><option>Ahmedabad</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>To City</label>
+          <select id="bus-to">
+            <option value="">Select destination</option>
+            <option>Hyderabad</option><option>Bangalore</option><option>Chennai</option>
+            <option>Mumbai</option><option>Delhi</option><option>Pune</option>
+            <option>Kolkata</option><option>Ahmedabad</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Travel Date</label>
+          <input type="date" id="bus-date" />
+        </div>
+        <div class="input-group">
+          <label>Bus Type</label>
+          <select id="bus-type" onchange="calcBusPrice()">
+            <option value="250">Ordinary (₹250/seat)</option>
+            <option value="400">AC Seater (₹400/seat)</option>
+            <option value="600">Volvo Sleeper (₹600/seat)</option>
+            <option value="750">Luxury AC Sleeper (₹750/seat)</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Number of Seats</label>
+          <input type="number" id="bus-seats" value="1" min="1" max="6" oninput="calcBusPrice()" />
+        </div>
+        <div class="input-group">
+          <label>Passenger Name</label>
+          <input type="text" id="bus-passenger" placeholder="Lead passenger name" />
+        </div>
+      </div>
+
+      <div class="price-summary" id="bus-price-summary">
+        <div class="price-row">
+          <span class="price-label">Base Fare</span>
+          <span class="price-val" id="bus-base-price">₹250 × 1 seat</span>
+        </div>
+        <div class="price-row">
+          <span class="price-label">Discount (10% — BUSGO)</span>
+          <span class="price-val text-green" id="bus-discount">-₹25</span>
+        </div>
+        <div class="price-row">
+          <span class="price-label">Convenience Fee</span>
+          <span class="price-val">₹30</span>
+        </div>
+        <div class="price-row">
+          <span class="price-label fw-800">Total Amount</span>
+          <span class="price-total" id="bus-total">₹255</span>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-full mt-24" onclick="bookBus()">
+        Confirm Bus Booking →
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="movie-page" class="page booking-page">
+  <div class="booking-header">
+    <button class="back-btn" onclick="showPage('dashboard')">←</button>
+    <div>
+      <div class="booking-header-title">🎬 Movie Booking</div>
+      <div class="booking-header-sub">Book 2 tickets, get free popcorn!</div>
+    </div>
+  </div>
+  <div class="booking-body">
+    <div class="booking-form-card">
+      <div class="form-grid-2">
+        <div class="input-group">
+          <label>Movie</label>
+          <select id="movie-name">
+            <option>Kalki 2898 AD</option>
+            <option>Pushpa 2: The Rule</option>
+            <option>RRR Re-Release</option>
+            <option>Salaar Part 2</option>
+            <option>Devara Part 1</option>
+            <option>The Avengers: Finale</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Theatre</label>
+          <select id="movie-theatre">
+            <option>PVR INOX – Banjara Hills</option>
+            <option>Cinepolis – Himayatnagar</option>
+            <option>AMB Cinemas – Gachibowli</option>
+            <option>Asian Multiplex – Ameerpet</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Date</label>
+          <input type="date" id="movie-date" />
+        </div>
+        <div class="input-group">
+          <label>Show Time</label>
+          <select id="movie-time">
+            <option>10:30 AM</option><option>1:45 PM</option>
+            <option>4:30 PM</option><option>7:00 PM</option><option>10:15 PM</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div style="text-align:center;margin-bottom:16px;">
+        <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">Select Your Seats</div>
+        <div style="font-size:12px;color:var(--text-muted);">₹200/seat · Click to select</div>
+      </div>
+
+      <div class="screen-indicator"></div>
+      <div class="screen-label">SCREEN THIS WAY</div>
+
+      <div class="seat-grid" id="seat-grid"></div>
+
+      <div class="seat-legend">
+        <div class="legend-item"><div class="legend-box legend-avail"></div>Available</div>
+        <div class="legend-item"><div class="legend-box legend-sel"></div>Selected</div>
+        <div class="legend-item"><div class="legend-box legend-book"></div>Booked</div>
+      </div>
+
+      <div class="price-summary" style="margin-top:8px;">
+        <div class="price-row">
+          <span class="price-label">Selected Seats</span>
+          <span class="price-val" id="movie-seat-list">None</span>
+        </div>
+        <div class="price-row">
+          <span class="price-label">Seat Cost</span>
+          <span class="price-val" id="movie-seat-cost">₹0</span>
+        </div>
+        <div class="price-row" id="movie-popcorn-row" style="display:none;">
+          <span class="price-label">🍿 Free Popcorn</span>
+          <span class="price-val text-green">₹0</span>
+        </div>
+        <div class="price-row">
+          <span class="price-label fw-800">Total</span>
+          <span class="price-total" id="movie-total">₹0</span>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-full mt-24" onclick="bookMovie()">
+        Confirm Movie Booking →
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="train-page" class="page booking-page">
+  <div class="booking-header">
+    <button class="back-btn" onclick="showPage('dashboard')">←</button>
+    <div>
+      <div class="booking-header-title">🚂 Train Booking</div>
+      <div class="booking-header-sub">5% off on weekend journeys — auto-applied</div>
+    </div>
+  </div>
+  <div class="booking-body">
+    <div class="booking-form-card">
+      <div class="form-grid-2">
+        <div class="input-group">
+          <label>Source Station</label>
+          <select id="train-from">
+            <option value="">Select source</option>
+            <option>Hyderabad Deccan (HYB)</option>
+            <option>Secunderabad (SC)</option>
+            <option>Bangalore City (SBC)</option>
+            <option>Chennai Central (MAS)</option>
+            <option>Mumbai CST (CSTM)</option>
+            <option>Delhi (NDLS)</option>
+            <option>Kolkata (HWH)</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Destination Station</label>
+          <select id="train-to">
+            <option value="">Select destination</option>
+            <option>Hyderabad Deccan (HYB)</option>
+            <option>Secunderabad (SC)</option>
+            <option>Bangalore City (SBC)</option>
+            <option>Chennai Central (MAS)</option>
+            <option>Mumbai CST (CSTM)</option>
+            <option>Delhi (NDLS)</option>
+            <option>Kolkata (HWH)</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Journey Date</label>
+          <input type="date" id="train-date" onchange="calcTrainPrice()" />
+        </div>
+        <div class="input-group">
+          <label>Travel Class</label>
+          <select id="train-class" onchange="calcTrainPrice()">
+            <option value="150">General (₹150/person)</option>
+            <option value="350">Sleeper Class (₹350/person)</option>
+            <option value="600">3 Tier AC (₹600/person)</option>
+            <option value="900">2 Tier AC (₹900/person)</option>
+            <option value="1500">1 Tier AC (₹1500/person)</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Passengers</label>
+          <input type="number" id="train-passengers" value="1" min="1" max="6" oninput="calcTrainPrice()" />
+        </div>
+        <div class="input-group">
+          <label>Lead Passenger Name</label>
+          <input type="text" id="train-passenger-name" placeholder="Passenger name" />
+        </div>
+      </div>
+
+      <div class="price-summary" id="train-price-summary">
+        <div class="price-row">
+          <span class="price-label">Base Fare</span>
+          <span class="price-val" id="train-base-price">₹150 × 1 person</span>
+        </div>
+        <div class="price-row" id="train-discount-row">
+          <span class="price-label" id="train-discount-label">Weekend Discount (5%)</span>
+          <span class="price-val text-green" id="train-discount">₹0</span>
+        </div>
+        <div class="price-row">
+          <span class="price-label">IRCTC Service Charge</span>
+          <span class="price-val">₹40</span>
+        </div>
+        <div class="price-row">
+          <span class="price-label fw-800">Total Amount</span>
+          <span class="price-total" id="train-total">₹190</span>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-full mt-24" onclick="bookTrain()">
+        Confirm Train Booking →
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="profile-page" class="page">
+  <nav class="navbar">
+    <a class="navbar-brand">
+      <div class="logo-icon">🎫</div>
+      Quick<span>Ticket</span>
+    </a>
+    <div class="navbar-nav">
+      <button class="nav-link" onclick="showPage('dashboard')">🏠 Dashboard</button>
+      <button class="nav-link" onclick="showPage('history')">📋 History</button>
+      <button class="btn btn-ghost btn-sm" onclick="logout()">Logout</button>
+    </div>
+  </nav>
+  <div class="profile-body">
+    <div class="profile-avatar" id="profile-avatar">A</div>
+    <div class="profile-name" id="profile-name">User Name</div>
+    <div class="profile-phone" id="profile-phone">📱 +91 XXXXXXXXXX</div>
+
+    <div class="info-list">
+      <div class="info-item"><span class="info-label">Full Name</span><span class="info-val" id="pi-name">—</span></div>
+      <div class="info-item"><span class="info-label">Phone Number</span><span class="info-val" id="pi-phone">—</span></div>
+      <div class="info-item"><span class="info-label">Account Type</span><span class="info-val text-orange">Free Member</span></div>
+      <div class="info-item"><span class="info-label">Member Since</span><span class="info-val" id="pi-since">—</span></div>
+      <div class="info-item"><span class="info-label">Total Bookings</span><span class="info-val" id="pi-bookings">0</span></div>
+    </div>
+
+    <button class="btn btn-outline btn-full mt-24" onclick="logout()">🔓 Logout</button>
+  </div>
+</div>
+
+<div id="history-page" class="page">
+  <nav class="navbar">
+    <a class="navbar-brand">
+      <div class="logo-icon">🎫</div>
+      Quick<span>Ticket</span>
+    </a>
+    <div class="navbar-nav">
+      <button class="nav-link" onclick="showPage('dashboard')">🏠 Dashboard</button>
+      <button class="nav-link" onclick="showPage('profile')">👤 Profile</button>
+      <button class="btn btn-ghost btn-sm" onclick="logout()">Logout</button>
+    </div>
+  </nav>
+  <div class="history-body">
+    <div class="section-header" style="margin-bottom:28px;">
+      <div>
+        <div class="section-title">Booking History</div>
+        <div class="section-sub" id="history-count">Your past bookings</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="clearHistory()" id="clear-hist-btn" style="display:none;color:var(--red);border-color:rgba(239,71,111,0.3);">🗑 Clear All</button>
+    </div>
+    <div id="history-list"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="confirm-modal">
+  <div class="modal-box">
+    <div class="modal-icon">🎉</div>
+    <div class="modal-title">Booking Confirmed!</div>
+    <div class="modal-sub" id="modal-sub-text">Your ticket has been booked successfully.</div>
+    <div class="modal-ticket" id="modal-ticket-details"></div>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="closeModal()">View Dashboard</button>
+      <button class="btn btn-ghost" onclick="showPage('history');closeModal()">Booking History</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ── Page Router ──────────────────────────────────────── */
+const protectedPages = ['dashboard','bus','movie','train','profile','history'];
+
+function showPage(id) {
+  const user = getUser();
+  if (protectedPages.includes(id) && !user) {
+    showToast('Please login first 🔐', 'info');
+    id = 'login';
+  }
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const pg = document.getElementById(id + '-page');
+  if (pg) {
+    pg.classList.add('active');
+    window.scrollTo(0,0);
+    if (id === 'dashboard') refreshDashboard();
+    if (id === 'profile')   refreshProfile();
+    if (id === 'history')   refreshHistory();
+    if (id === 'movie')     buildSeatGrid();
+    if (id === 'bus')       calcBusPrice();
+    if (id === 'train')     calcTrainPrice();
+  }
+}
+
+/* ── LocalStorage Helpers ─────────────────────────────── */
+function getUser()     { try { return JSON.parse(localStorage.getItem('qt_user')); } catch { return null; } }
+function getBookings() { try { return JSON.parse(localStorage.getItem('qt_bookings')) || []; } catch { return []; } }
+function saveBooking(b) {
+  const all = getBookings();
+  all.unshift(b);
+  localStorage.setItem('qt_bookings', JSON.stringify(all));
+}
+
+/* ── Slideshow ────────────────────────────────────────── */
+let slideIdx = 0;
+const slides = document.querySelectorAll('.slide');
+const dots   = document.querySelectorAll('.slide-dot');
+
+function goToSlide(n) {
+  slides[slideIdx].classList.remove('active');
+  dots[slideIdx].classList.remove('active');
+  slideIdx = n;
+  slides[slideIdx].classList.add('active');
+  dots[slideIdx].classList.add('active');
+}
+setInterval(() => goToSlide((slideIdx + 1) % slides.length), 4000);
+
+/* ── OTP System ───────────────────────────────────────── */
+let generatedOTP = null;
+
+function sendOTP() {
+  const name  = document.getElementById('login-name').value.trim();
+  const phone = document.getElementById('login-phone').value.trim();
+  const err   = document.getElementById('login-error');
+  const hint  = document.getElementById('otp-hint');
+
+  err.classList.remove('show');
+  if (!name) { showErr(err, '⚠ Please enter your name.'); return; }
+  if (!/^\d{10}$/.test(phone)) { showErr(err, '⚠ Enter a valid 10-digit phone number.'); return; }
+
+  generatedOTP = String(Math.floor(100000 + Math.random() * 900000));
+  hint.textContent = `📩 Demo OTP sent to +91 ${phone}: ${generatedOTP}`;
+  hint.classList.add('show');
+
+  const btn = document.getElementById('otp-send-btn');
+  btn.disabled = true; btn.textContent = 'Sent ✓';
+  setTimeout(() => { btn.disabled = false; btn.textContent = 'Resend'; }, 30000);
+  showToast('OTP generated! Check the hint above 📲', 'success');
+}
+
+function showErr(el, msg) { el.textContent = msg; el.classList.add('show'); }
+
+function verifyAndLogin() {
+  const name  = document.getElementById('login-name').value.trim();
+  const phone = document.getElementById('login-phone').value.trim();
+  const otp   = document.getElementById('login-otp').value.trim();
+  const err   = document.getElementById('login-error');
+
+  err.classList.remove('show');
+
+  if (!name) { showErr(err, '⚠ Please enter your name.'); return; }
+  if (!/^\d{10}$/.test(phone)) { showErr(err, '⚠ Enter a valid 10-digit phone number.'); return; }
+  if (!generatedOTP) { showErr(err, '⚠ Please generate an OTP first.'); return; }
+  if (otp !== generatedOTP) { showErr(err, '⚠ Incorrect OTP. Please try again.'); return; }
+
+  localStorage.setItem('qt_user', JSON.stringify({
+    name, phone,
+    since: new Date().toLocaleDateString('en-IN', { day:'numeric', month:'long', year:'numeric' })
+  }));
+
+  generatedOTP = null;
+  document.getElementById('otp-hint').classList.remove('show');
+  document.getElementById('login-otp').value = '';
+  document.getElementById('otp-send-btn').textContent = 'Send OTP';
+  document.getElementById('otp-send-btn').disabled = false;
+
+  showToast(`Welcome to QuickTicket, ${name}! 🎉`, 'success');
+  showPage('dashboard');
+}
+
+function logout() {
+  if (confirm('Are you sure you want to logout?')) {
+    showPage('welcome');
+    showToast('Logged out successfully. See you soon!', 'info');
+  }
+}
+
+/* ── Dashboard ────────────────────────────────────────── */
+function refreshDashboard() {
+  const user = getUser();
+  if (!user) return;
+  const bookings = getBookings();
+
+  const hr = new Date().getHours();
+  const gt = hr < 12 ? 'Good Morning' : hr < 17 ? 'Good Afternoon' : 'Good Evening';
+  document.getElementById('greeting-time').textContent = gt + ' ☀️';
+  document.getElementById('greeting-name').textContent = user.name;
+  document.getElementById('dash-total-bookings').textContent = bookings.length;
+
+  const recent = document.getElementById('dash-recent-bookings');
+  if (bookings.length === 0) {
+    recent.innerHTML = `<div class="empty-state" style="padding:32px;"><div class="empty-icon">🎟️</div><div class="empty-title">No bookings yet</div><div class="empty-sub">Start by selecting a service above</div></div>`;
+  } else {
+    recent.innerHTML = bookings.slice(0,3).map(b => renderHistoryCard(b)).join('');
+  }
+}
+
+/* ── Profile ──────────────────────────────────────────── */
+function refreshProfile() {
+  const user = getUser();
+  if (!user) return;
+  const bookings = getBookings();
+  const initials = user.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+
+  document.getElementById('profile-avatar').textContent = initials;
+  document.getElementById('
