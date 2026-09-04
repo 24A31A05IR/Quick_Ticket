@@ -2,6 +2,8 @@
 
 QuickTicket is a modern, responsive single-page web application (SPA) designed for seamless ticket bookings across multiple services including Buses, Movies, and Trains. It features a high-end dark-themed UI with glassmorphism effects, integrated logic for dynamic pricing, and a simulated authentication system.
 
+Live Demo:https://24a31a05ir.github.io/Quick_Ticket/
+
 ## 🚀 Features
 
 ### 1. Authentication System
